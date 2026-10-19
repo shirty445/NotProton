@@ -73,6 +73,7 @@ enum RunnerSetup {
         }
 
         try verify(build, root)
+        try CrossOverLicense.recordTrial(status, in: root)
 
         report(.staging)
         let staged = try stage(build, root, bridge)
@@ -84,7 +85,6 @@ enum RunnerSetup {
         )
         for tool in CompatToolList.installed(runners: runners, file: toolList) {
             let run = compatTools.appending(path: "\(tool.name)/run")
-            if FileManager.default.fileExists(atPath: run.path(percentEncoded: false)) { continue }
             try SteamInstaller.installIfChanged(DeploymentContent.File(
                 source: try runScript(), destination: run, name: "\(tool.name)/run", executable: true))
         }

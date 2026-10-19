@@ -130,8 +130,8 @@ struct RunnerPrepareTests {
         }
     }
 
-    @Test("A tool's existing run script is left alone")
-    func keepsExistingRunScript() throws {
+    @Test("Preparing a tool refreshes its launch script")
+    func refreshesExistingRunScript() throws {
         let runners = try makeRunners(cloning: [Self.release])
         defer { try? FileManager.default.removeItem(at: runners) }
         let tool = SupportedRunners.tools(for: [Self.release])[0].name
@@ -141,7 +141,7 @@ struct RunnerPrepareTests {
 
         _ = try prepare(Self.release, runners: runners, calls: Calls())
 
-        #expect(try Data(contentsOf: run) == old)
+        #expect(try Data(contentsOf: run) == Self.runScript)
     }
 
     @Test("Preparing one build leaves another build's staged copies alone")

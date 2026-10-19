@@ -729,6 +729,34 @@ import_prefix_settings() {
     || echo "=== prefix settings import exited status=$import_status ===" >> "$log" 2>&1 || true
 }
 
+cross_over_trial_active() {
+  trial_marker="$CX_ROOT/notproton-trial-expires"
+  [ -e "$trial_marker" ] || return 0
+  # A purchase made during the trial also unlocks an already installed runner.
+  for preferences in "$HOME/Library/Preferences" /Library/Preferences; do
+    license="$preferences/com.codeweavers.CrossOver.license"
+    [ -f "$license" ] || continue
+    for digest in sha256 sha1; do
+      sidecar=sha256
+      [ "$digest" != sha1 ] || sidecar=sig
+      signature="$preferences/com.codeweavers.CrossOver.$sidecar"
+      [ -f "$signature" ] || continue
+      if /usr/bin/openssl dgst "-$digest" -verify "$CX_ROOT/share/crossover/data/tie.pub" \
+        -signature "$signature" "$license" >/dev/null 2>&1; then return 0; fi
+    done
+  done
+  trial_start="" trial_end="" trial_extra=""
+  IFS=' ' read -r trial_start trial_end trial_extra < "$trial_marker" || return 1
+  [ -z "$trial_extra" ] || return 1
+  for trial_number in "$trial_start" "$trial_end"; do
+    case "$trial_number" in ''|*[!0-9]*) return 1 ;; esac
+    [ "${#trial_number}" -le 10 ] || return 1
+  done
+  [ "$((trial_end - trial_start))" -eq 1209600 ] || return 1
+  trial_now=$(date +%s) || return 1
+  [ "$trial_now" -ge "$trial_start" ] && [ "$trial_now" -lt "$trial_end" ]
+}
+
 stage_step="runner check"
 if [ -z "$np_build" ] || [ ! -d "$CX_ROOT/lib/wine" ]; then
   echo "=== build ${np_build:-(none recorded)} behind this compatibility tool is not set up, set it up in NotProton ===" >> "$log" 2>&1 || true
@@ -736,6 +764,12 @@ if [ -z "$np_build" ] || [ ! -d "$CX_ROOT/lib/wine" ]; then
   exit 1
 fi
 echo "runner: build $np_build ($np_display) at $CX_ROOT" >> "$log" 2>&1 || true
+
+if ! cross_over_trial_active; then
+  echo "=== CrossOver trial has expired or its expiry record is unreadable ===" >> "$log" 2>&1 || true
+  show_alert "CrossOver trial is unavailable" "Open CrossOver to check your trial or activate a paid license, then set up the compatibility tool in NotProton again."
+  exit 1
+fi
 
 # Each CrossOver build needs its own template.
 # FEX builds need two, one for FEX/arm64 Wine and one for Rosetta/AMD64 Wine

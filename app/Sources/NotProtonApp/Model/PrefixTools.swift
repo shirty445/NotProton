@@ -175,6 +175,7 @@ enum PrefixTools {
     private static func readyLoader(
         step: String, prefix: WinePrefix, runner: URL, flavor: CompatTool.Flavor
     ) throws -> URL {
+        try CrossOverLicense.requireRunnerAccess(runner)
         let loader = loader(runner: runner, flavor: flavor)
         guard FileManager.default.isExecutableFile(atPath: loader.path(percentEncoded: false)) else {
             throw StepFailure(

@@ -246,7 +246,7 @@ struct StatusView: View {
         } message: {
             Text(
                 CrossOverLicense.notActivatedAdvice
-                    + String(localized: " NotProton can be deployed, but the CrossOver compatibility tool cannot be installed without a valid license.")
+                    + String(localized: " NotProton can be deployed, but the CrossOver compatibility tool cannot be installed without a paid license or an active trial.")
             )
         }
         .task { if status.snapshot == nil { await status.refresh() } }
@@ -599,8 +599,11 @@ struct StatusView: View {
             let names = tools.filter { $0.build == row.buildID }.map(\.display)
             lines.append(contentsOf: names)
         }
-        if row.copy == .none, row.licensed == false { lines.append("\(String(localized: "Open CrossOver to activate it.")) \(CrossOverLicense.trialUnsupported)") }
+        if row.copy == .none, row.licensed == false { lines.append("\(String(localized: "Open CrossOver to activate it.")) \(CrossOverLicense.trialAdvice)") }
         if let install = row.install {
+            if let access = status.snapshot?.crossOverLicense[install.id], access.trialExpiresAt != nil {
+                lines.append(access.detail)
+            }
             var path = install.bundle.path(percentEncoded: false)
             if path.count > 1, path.hasSuffix("/") { path.removeLast() }
             lines.append(path)

@@ -214,11 +214,11 @@ struct CrossOverLicenseTests {
 
         // A key generated for this fixture verifies no license on this machine, and a
         // machine with no license has nothing to find either.
-        let expected = CrossOverLicense.check(crossOverRoot: install.crossOverRoot)
+        let expected = CrossOverLicense.check(crossOverRoot: install.crossOverRoot, searchDirs: fix.searchDirs)
         #expect(!expected.licensed)
 
         do {
-            try CrossOverLicense.requireValid(for: install)
+            try CrossOverLicense.requireValid(for: install, searchDirs: fix.searchDirs)
             Issue.record("requireValid accepted a bundle whose key verifies nothing")
         } catch let failure as StepFailure {
             #expect(failure.detail == expected.detail)
@@ -259,4 +259,84 @@ struct CrossOverLicenseTests {
         #expect(status.diagnostic.contains("could not be checked"))
         #expect(status.detail == CrossOverLicense.notActivated)
     }
+    private func trial(_ firstRun: Any, in fix: Fixture) throws {
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: ["FirstRunDate": firstRun], format: .binary, options: 0)
+        try data.write(to: fix.local.appending(path: "\(Self.base).plist"))
+    }
+
+    @Test("An active trial works without paid license files and expires at the boundary")
+    func trialBoundaries() throws {
+        let fix = try Self.fixture()
+        defer { fix.remove() }
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        try trial(start, in: fix)
+        let expiry = start.addingTimeInterval(CrossOverLicense.trialDuration)
+        for now in [start, expiry.addingTimeInterval(-1)] {
+            let status = CrossOverLicense.check(crossOverRoot: fix.root, searchDirs: fix.searchDirs, now: now)
+            #expect(status.licensed)
+            #expect(status.trialExpiresAt == expiry)
+        }
+        for now in [start.addingTimeInterval(-1), expiry, expiry.addingTimeInterval(1)] {
+            #expect(!CrossOverLicense.check(crossOverRoot: fix.root, searchDirs: fix.searchDirs, now: now).licensed)
+        }
+    }
+
+    @Test("Malformed dates and missing bundle verification keys cannot activate a trial")
+    func invalidTrials() throws {
+        let fix = try Self.fixture()
+        defer { fix.remove() }
+        for value: Any in ["2026-10-19", 1234, true] {
+            try trial(value, in: fix)
+            #expect(!CrossOverLicense.check(crossOverRoot: fix.root, searchDirs: fix.searchDirs).licensed)
+        }
+        try trial(Date(), in: fix)
+        try FileManager.default.removeItem(at: fix.publishedKey)
+        #expect(!CrossOverLicense.check(crossOverRoot: fix.root, searchDirs: fix.searchDirs).licensed)
+    }
+
+    @Test("A paid license takes priority over an expired trial")
+    func purchaseOverridesTrial() throws {
+        let fix = try Self.fixture()
+        defer { fix.remove() }
+        try trial(Date(timeIntervalSince1970: 0), in: fix)
+        let license = try Self.writeLicense(in: fix.local)
+        try Self.sign(license, with: fix.key, digest: "-sha256", sidecar: "sha256")
+        let status = CrossOverLicense.check(crossOverRoot: fix.root, searchDirs: fix.searchDirs)
+        #expect(status.licensed)
+        #expect(status.trialExpiresAt == nil)
+    }
+
+    @Test("Preparing a trial runner records its original expiry and a purchase clears it")
+    func recordsTrial() throws {
+        let fix = try Self.fixture()
+        defer { fix.remove() }
+        let start = Date()
+        try trial(start, in: fix)
+        let status = CrossOverLicense.check(crossOverRoot: fix.root, searchDirs: fix.searchDirs)
+        try CrossOverLicense.recordTrial(status, in: fix.root)
+        let marker = fix.root.appending(path: CrossOverLicense.trialMarker)
+        let fields = try String(contentsOf: marker, encoding: .utf8).split(whereSeparator: \.isWhitespace)
+        #expect(fields.count == 2)
+        #expect(Int(fields[1]) == Int(start.addingTimeInterval(CrossOverLicense.trialDuration).timeIntervalSince1970))
+        try CrossOverLicense.recordTrial(.init(licensed: true, detail: "paid", diagnostic: "test"), in: fix.root)
+        #expect(!FileManager.default.fileExists(atPath: marker.path))
+    }
+
+    @Test("Wine tools cannot outlive the recorded trial even if preferences change")
+    func toolsRespectRecordedExpiry() throws {
+        let fix = try Self.fixture()
+        defer { fix.remove() }
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let expiry = start.addingTimeInterval(CrossOverLicense.trialDuration)
+        try trial(start, in: fix)
+        let status = CrossOverLicense.check(crossOverRoot: fix.root, searchDirs: fix.searchDirs, now: start)
+        try CrossOverLicense.recordTrial(status, in: fix.root)
+        try CrossOverLicense.requireRunnerAccess(fix.root, searchDirs: fix.searchDirs, now: start)
+        try trial(expiry, in: fix)
+        #expect(throws: StepFailure.self) {
+            try CrossOverLicense.requireRunnerAccess(fix.root, searchDirs: fix.searchDirs, now: expiry)
+        }
+    }
+
 }
