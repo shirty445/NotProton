@@ -18,7 +18,7 @@ enum InstallPayload {
         let fonts: [String]
     }
 
-    static func root(in bundle: Bundle = .module) throws -> URL {
+    static func root(in bundle: Bundle = .notProtonResources) throws -> URL {
         guard let url = bundle.url(forResource: "payload", withExtension: nil) else {
             throw StepFailure(
                 step: step,
@@ -28,7 +28,7 @@ enum InstallPayload {
         return url
     }
 
-    static func locate(in bundle: Bundle = .module) throws -> Located {
+    static func locate(in bundle: Bundle = .notProtonResources) throws -> Located {
         try locate(root: try root(in: bundle))
     }
 

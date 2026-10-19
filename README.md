@@ -10,6 +10,8 @@ This tool is intended to be used with the stable Steam Client (version 179191863
 
 This version supports an active 14-day CrossOver trial as well as paid licenses. Open CrossOver once to start its trial, then choose **Set Up Compatibility Tool** in NotProton. Trial detection reads CrossOver's existing `FirstRunDate` preference; missing, future, malformed, and expired dates are refused. The copied runner records that expiry and checks it before each game launch. A valid paid license unlocks a previously installed trial runner. CrossOver preferences and trial dates are never modified.
 
+The custom build is version `1.2.0-trial.1`. Automatic upstream updates are disabled so they cannot replace trial support. After building, `out/NotProton.app/Contents/MacOS/NotProtonApp --verify-components` checks the packaged payload without opening the app or modifying Steam.
+
 **NTFS file systems/drivers are not currently supported.**
 
 Supporting specifically CrossOver is a design goal of this project. Better support for modifying CrossOver (using custom builds of DXMT/patched D3DMetal/MacGameVideoFix) will come in a future update, but support for alternatives to CrossOver itself is not planned.

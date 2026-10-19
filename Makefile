@@ -653,8 +653,17 @@ app: app-payload $(ICON_CAR)
 	xcrun vtool -set-build-version macos $(MIN_VER) "$$(xcrun --sdk macosx --show-sdk-version)" \
 		-replace -output "$(APP_BUNDLE)/Contents/MacOS/NotProtonApp" \
 		"$(APP_BUNDLE)/Contents/MacOS/NotProtonApp"
-	cp -R "$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp_NotProtonApp.bundle" \
-		"$(APP_BUNDLE)/Contents/Resources/"
+	@resources="$$(swift build --package-path app -c release --show-bin-path)/NotProtonApp_NotProtonApp.bundle"; \
+	if [ -d "$$resources/Contents/Resources" ]; then \
+		xcrun xcstringstool compile app/Sources/NotProtonApp/Resources/Localization/Localizable.xcstrings --output-directory "$$resources/Contents/Resources"; \
+		cp -R "$$resources" "$(APP_BUNDLE)/Contents/Resources/"; \
+	else \
+		xcrun xcstringstool compile app/Sources/NotProtonApp/Resources/Localization/Localizable.xcstrings --output-directory "$$resources"; \
+		destination="$(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents"; \
+		mkdir -p "$$destination/Resources"; \
+		cp "$$resources/Info.plist" "$$destination/Info.plist"; \
+		rsync -a --exclude Info.plist "$$resources/" "$$destination/Resources/"; \
+	fi
 	cp -R "$(APP_BUNDLE)/Contents/Resources/NotProtonApp_NotProtonApp.bundle/Contents/Resources/"*.lproj \
 		"$(APP_BUNDLE)/Contents/Resources/"
 	cp "$(ICON_DIR)/Assets.car" "$(ICON_DIR)/NotProton.icns" \
