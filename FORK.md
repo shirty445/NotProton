@@ -47,6 +47,8 @@ back to the Mac version. Windows-only games use the first NotProton tool automat
 - **Wine 8 era runtimes** (GPTK 2/3, Wine-Crossover 23.7) have no `lib/wine/x86_64-unix/wine`,
   so the run script falls back to `bin/wine64`.
 - **No CrossOver license check** for downloaded runners.
+- **English only.** The Wine Manager's text uses its own `WineManager` string table, so
+  upstream's `Localizable.xcstrings` and its translation check never see it.
 - **Automatic update checks are off**, because the bundled Sparkle key would otherwise accept
   upstream's release and replace this fork. *Check for Updates…* still asks upstream.
 

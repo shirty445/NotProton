@@ -13,7 +13,7 @@ enum Pane: String, CaseIterable, Identifiable, Hashable {
         case .status: String(localized: "Status")
         case .prefixes: String(localized: "Prefixes")
         case .backups: String(localized: "Prefix Backups")
-        case .wine: String(localized: "Wine Manager")
+        case .wine: wm("Wine Manager")
         }
     }
 

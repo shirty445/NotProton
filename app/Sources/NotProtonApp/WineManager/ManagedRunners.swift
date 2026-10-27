@@ -23,7 +23,7 @@ enum ManagedRunners {
 
     static let manifestName = "notproton-managed.json"
     static let forwardersFolder = "forwarders"
-    static let step = String(localized: "Install Wine version")
+    static let step = wm("Install Wine version")
 
     // MARK: Registry
 
@@ -106,7 +106,7 @@ enum ManagedRunners {
     ) async throws -> ManagedRunnerManifest {
         let archive = try await download(base, report: report)
         return try await Task.detached(priority: .userInitiated) {
-            report(Progress(label: String(localized: "Opening Apple's Game Porting Toolkit"), fraction: nil))
+            report(Progress(label: wm("Opening Apple's Game Porting Toolkit"), fraction: nil))
             let mount = try GPTKImage.open(dmg: dmg)
             defer { mount.close() }
             let version = mount.d3dMetalVersion
@@ -117,7 +117,7 @@ enum ManagedRunners {
                 origin: dmg?.lastPathComponent ?? mount.redist.path(percentEncoded: false),
                 base: base.name, archive: archive,
                 customize: { root in
-                    report(Progress(label: String(localized: "Patching in D3DMetal \(version)"), fraction: nil))
+                    report(Progress(label: wm("Patching in D3DMetal \(version)"), fraction: nil))
                     try mount.overlay(onto: root)
                 },
                 report: report)
@@ -141,7 +141,7 @@ enum ManagedRunners {
             return target
         }
         try FileManager.default.createDirectory(at: downloads, withIntermediateDirectories: true)
-        let label = String(localized: "Downloading \(release.name)")
+        let label = wm("Downloading \(release.name)")
         report(Progress(label: label, fraction: 0))
         let temporary = try await Downloader.fetch(release.download) { report(Progress(label: label, fraction: $0)) }
         try? FileManager.default.removeItem(at: target)
@@ -157,7 +157,7 @@ enum ManagedRunners {
         let runners = SupportPaths.runners
         let bridge = SupportPaths.bridge
         guard fm.fileExists(atPath: bridge.appending(path: "x86_64-windows/lsteamclient.dll").path(percentEncoded: false)) else {
-            throw StepFailure(step: step, detail: String(localized: "Install NotProton from the Status pane before adding Wine versions."))
+            throw StepFailure(step: step, detail: wm("Install NotProton from the Status pane before adding Wine versions."))
         }
 
         let lock = try DeploymentContent.acquireInstallationLock()
@@ -165,7 +165,7 @@ enum ManagedRunners {
 
         let target = SupportPaths.runnerRoot(forBuild: id, runners: runners)
         if RunnerInstaller.isRunning(from: target) {
-            throw StepFailure(step: step, detail: String(localized: "A game or Wine tool is running on \(display). Quit it first."))
+            throw StepFailure(step: step, detail: wm("A game or Wine tool is running on \(display). Quit it first."))
         }
         try fm.createDirectory(at: runners, withIntermediateDirectories: true)
         let staging = runners.appending(path: ".crossover-\(id).new")
@@ -174,13 +174,13 @@ enum ManagedRunners {
         let unpacked = staging.appending(path: "unpacked")
         try fm.createDirectory(at: unpacked, withIntermediateDirectories: true)
 
-        report(Progress(label: String(localized: "Extracting \(archive.lastPathComponent)"), fraction: nil))
+        report(Progress(label: wm("Extracting \(archive.lastPathComponent)"), fraction: nil))
         let tar = try Shell.run("/usr/bin/tar", ["-xf", archive.path(percentEncoded: false), "-C", unpacked.path(percentEncoded: false)])
         guard tar.succeeded else {
-            throw StepFailure(step: step, detail: String(localized: "Extracting failed. \(tar.stderr.trimmingCharacters(in: .whitespacesAndNewlines))"))
+            throw StepFailure(step: step, detail: wm("Extracting failed. \(tar.stderr.trimmingCharacters(in: .whitespacesAndNewlines))"))
         }
         guard let wine = wineRoot(in: unpacked) else {
-            throw StepFailure(step: step, detail: String(localized: "\(archive.lastPathComponent) has no Wine runtime in it."))
+            throw StepFailure(step: step, detail: wm("\(archive.lastPathComponent) has no Wine runtime in it."))
         }
         let root = staging.appending(path: "CrossOver")
         try fm.moveItem(at: wine, to: root)
@@ -189,13 +189,13 @@ enum ManagedRunners {
 
         try customize?(root)
 
-        report(Progress(label: String(localized: "Preparing \(display)"), fraction: nil))
+        report(Progress(label: wm("Preparing \(display)"), fraction: nil))
         try signLoaders(in: root)
         try SteamclientForwarder.install(into: staging.appending(path: forwardersFolder), bridge: bridge)
 
         let loader = CrossOverSource.unixLoader(inRoot: root)
         guard let hash = Digest.sha256IfPresent(loader) else {
-            throw StepFailure(step: step, detail: String(localized: "\(display) has no Wine loader."))
+            throw StepFailure(step: step, detail: wm("\(display) has no Wine loader."))
         }
         let manifest = ManagedRunnerManifest(
             id: id, source: source, version: version, display: display, loaderSHA256: hash,
@@ -310,7 +310,7 @@ private final class Downloader: NSObject, URLSessionDownloadDelegate, @unchecked
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         if let http = downloadTask.response as? HTTPURLResponse, http.statusCode != 200 {
-            finish(.failure(StepFailure(step: ManagedRunners.step, detail: String(localized: "The download answered \(http.statusCode)."))))
+            finish(.failure(StepFailure(step: ManagedRunners.step, detail: wm("The download answered \(http.statusCode)."))))
             return
         }
         // The file at location is deleted when this returns.

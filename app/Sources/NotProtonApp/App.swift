@@ -46,7 +46,7 @@ struct NotProtonApp: App {
                 .keyboardShortcut("2", modifiers: .command)
             Button("Prefix Backups") { pane = .backups }
                 .keyboardShortcut("3", modifiers: .command)
-            Button("Wine Manager") { pane = .wine }
+            Button(wm("Wine Manager")) { pane = .wine }
                 .keyboardShortcut("4", modifiers: .command)
 
             Divider()

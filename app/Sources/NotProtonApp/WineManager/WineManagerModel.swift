@@ -78,20 +78,20 @@ final class WineManagerModel {
     }
 
     func install(_ release: WineRelease) {
-        run(id: release.runnerID, first: String(localized: "Downloading \(release.name)")) { report in
+        run(id: release.runnerID, first: wm("Downloading \(release.name)")) { report in
             let manifest = try await ManagedRunners.install(release, report: report)
-            return String(localized: "\(manifest.display) is ready. Restart Steam, then pick it under Properties > Compatibility.")
+            return wm("\(manifest.display) is ready. Restart Steam, then pick it under Properties > Compatibility.")
         }
     }
 
     func importGPTK(dmg: URL?) {
         guard let base = latestBase else {
-            failure = String(localized: "The Game Porting Toolkit list has not loaded yet, so there is no runtime to patch.")
+            failure = wm("The Game Porting Toolkit list has not loaded yet, so there is no runtime to patch.")
             return
         }
-        run(id: Self.gptkOverlayJob, first: String(localized: "Preparing Game Porting Toolkit")) { report in
+        run(id: Self.gptkOverlayJob, first: wm("Preparing Game Porting Toolkit")) { report in
             let manifest = try await ManagedRunners.installGPTKOverlay(dmg: dmg, base: base, report: report)
-            return String(localized: "\(manifest.display) is ready, built on \(base.name). Restart Steam, then pick it under Properties > Compatibility.")
+            return wm("\(manifest.display) is ready, built on \(base.name). Restart Steam, then pick it under Properties > Compatibility.")
         }
     }
 
@@ -99,7 +99,7 @@ final class WineManagerModel {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.diskImage]
         panel.directoryURL = SupportPaths.home.appending(path: "Downloads")
-        panel.message = String(localized: "Choose Apple's Game Porting Toolkit DMG")
+        panel.message = wm("Choose Apple's Game Porting Toolkit DMG")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         importGPTK(dmg: url)
     }
@@ -109,9 +109,9 @@ final class WineManagerModel {
     }
 
     func remove(_ id: String) {
-        run(id: id, first: String(localized: "Removing")) { _ in
+        run(id: id, first: wm("Removing")) { _ in
             try await Task.detached { try ManagedRunners.remove(id) }.value
-            return String(localized: "Removed. Restart Steam to update its list of compatibility tools.")
+            return wm("Removed. Restart Steam to update its list of compatibility tools.")
         }
     }
 
@@ -145,9 +145,9 @@ final class WineManagerModel {
                     }
                 }
             } catch is CancellationError {
-                outcome = String(localized: "Cancelled.")
+                outcome = wm("Cancelled.")
             } catch let error as URLError where error.code == .cancelled {
-                outcome = String(localized: "Cancelled.")
+                outcome = wm("Cancelled.")
             } catch {
                 failure = error.localizedDescription
             }

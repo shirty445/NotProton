@@ -2,6 +2,12 @@
 
 import Foundation
 
+// The fork's text is looked up in its own table, so upstream's string catalog never has to
+// carry it and syncing never conflicts there. Strings missing from a table show in English.
+func wm(_ key: String.LocalizationValue) -> String {
+    String(localized: key, table: "WineManager")
+}
+
 enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
     case gptk
     case wineCrossover
@@ -20,11 +26,11 @@ enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
     var blurb: String {
         switch self {
         case .gptk:
-            String(localized: "Game Porting Toolkit is developed by Apple and is recommended for Apple Silicon Macs. It works best for newer games that use DX12. Builds are packaged by Gcenx; GPTK 4 betas can be patched in from Apple's DMG.")
+            wm("Game Porting Toolkit is developed by Apple and is recommended for Apple Silicon Macs. It works best for newer games that use DX12. Builds are packaged by Gcenx; GPTK 4 betas can be patched in from Apple's DMG.")
         case .wineCrossover:
-            String(localized: "Wine-Crossover is CodeWeavers' open source Wine tree, built by Gcenx. It uses DXMT/DXVK-style translation rather than D3DMetal and suits older DX9-DX11 games.")
+            wm("Wine-Crossover is CodeWeavers' open source Wine tree, built by Gcenx. It uses DXMT/DXVK-style translation rather than D3DMetal and suits older DX9-DX11 games.")
         case .wineStaging:
-            String(localized: "Wine-Staging is upstream Wine with the staging patch set, built for macOS by Gcenx. It is the newest Wine, but has no D3DMetal.")
+            wm("Wine-Staging is upstream Wine with the staging patch set, built for macOS by Gcenx. It is the newest Wine, but has no D3DMetal.")
         }
     }
 
@@ -87,7 +93,7 @@ struct WineRelease: Identifiable, Sendable, Hashable {
 
 enum WineCatalog {
 
-    static let step = String(localized: "List Wine versions")
+    static let step = wm("List Wine versions")
 
     private struct Release: Decodable {
         struct Asset: Decodable {
@@ -110,8 +116,8 @@ enum WineCatalog {
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             let detail = http.statusCode == 403
-                ? String(localized: "GitHub's rate limit was reached. Try again in a few minutes.")
-                : String(localized: "GitHub answered \(http.statusCode).")
+                ? wm("GitHub's rate limit was reached. Try again in a few minutes.")
+                : wm("GitHub answered \(http.statusCode).")
             throw StepFailure(step: step, detail: detail)
         }
         return try parse(data, source: source)

@@ -9,7 +9,7 @@ import Foundation
 
 final class GPTKImage {
 
-    static let step = String(localized: "Patch in Game Porting Toolkit")
+    static let step = wm("Patch in Game Porting Toolkit")
     static let appleDownloads = URL(string: "https://developer.apple.com/download/all/?q=game%20porting%20toolkit")!
 
     let redist: URL
@@ -47,7 +47,7 @@ final class GPTKImage {
     static func open(dmg: URL?) throws -> GPTKImage {
         if let redist = mountedRedist() { return try GPTKImage(redist: redist, mounts: []) }
         guard let dmg = dmg ?? findDMG() else {
-            throw StepFailure(step: step, detail: String(localized: "No Game Porting Toolkit DMG was found. Download it from Apple, then choose it."))
+            throw StepFailure(step: step, detail: wm("No Game Porting Toolkit DMG was found. Download it from Apple, then choose it."))
         }
         var mounts: [URL] = []
         do {
@@ -57,12 +57,12 @@ final class GPTKImage {
             let nested = ((try? FileManager.default.contentsOfDirectory(at: outer, includingPropertiesForKeys: nil)) ?? [])
                 .first { $0.pathExtension.lowercased() == "dmg" && $0.lastPathComponent.lowercased().hasPrefix("evaluation environment") }
             guard let nested else {
-                throw StepFailure(step: step, detail: String(localized: "\(dmg.lastPathComponent) has no evaluation environment in it."))
+                throw StepFailure(step: step, detail: wm("\(dmg.lastPathComponent) has no evaluation environment in it."))
             }
             let inner = try attach(nested)
             mounts.append(inner)
             guard let redist = redist(in: inner) else {
-                throw StepFailure(step: step, detail: String(localized: "\(nested.lastPathComponent) has no redist/lib folder."))
+                throw StepFailure(step: step, detail: wm("\(nested.lastPathComponent) has no redist/lib folder."))
             }
             return try GPTKImage(redist: redist, mounts: mounts)
         } catch {
@@ -82,7 +82,7 @@ final class GPTKImage {
         }.first
         guard let version else {
             mounts.reversed().forEach(GPTKImage.detach)
-            throw StepFailure(step: GPTKImage.step, detail: String(localized: "The image has no D3DMetal.framework."))
+            throw StepFailure(step: GPTKImage.step, detail: wm("The image has no D3DMetal.framework."))
         }
         self.init(redist: redist, version: version, mounts: mounts)
     }
@@ -129,7 +129,7 @@ final class GPTKImage {
               let mount = entities.compactMap({ $0["mount-point"] as? String }).first
         else {
             let detail = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-            throw StepFailure(step: step, detail: String(localized: "Could not open \(dmg.lastPathComponent). \(detail)"))
+            throw StepFailure(step: step, detail: wm("Could not open \(dmg.lastPathComponent). \(detail)"))
         }
         return URL(filePath: mount, directoryHint: .isDirectory)
     }

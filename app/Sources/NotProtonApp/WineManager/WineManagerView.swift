@@ -23,16 +23,16 @@ struct WineManagerView: View {
                 .padding(20)
             }
         }
-        .navigationTitle("Wine Manager")
+        .navigationTitle(wm("Wine Manager"))
         .safeAreaInset(edge: .bottom) { messages }
         .task { await model.appear() }
     }
 
     private func header(search: Binding<String>) -> some View {
         HStack(spacing: 12) {
-            Text("Wine Manager").font(.largeTitle.bold())
+            Text(wm("Wine Manager")).font(.largeTitle.bold())
             Spacer()
-            TextField("Search versions…", text: search)
+            TextField(wm("Search versions…"), text: search)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 280)
             Button {
@@ -40,7 +40,7 @@ struct WineManagerView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .help("Refresh")
+            .help(wm("Refresh"))
             .disabled(model.loading.contains(model.source))
         }
         .padding([.horizontal, .top], 20)
@@ -70,24 +70,24 @@ struct WineManagerView: View {
     private var gptkOverlayCard: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Game Porting Toolkit 4 (beta)").font(.headline)
-                Text("Apple only publishes GPTK 4 behind a free Apple ID sign-in, so it cannot be downloaded for you. Download the DMG from Apple and NotProton patches its D3DMetal into \(model.latestBase?.name ?? "the latest Gcenx runtime").")
+                Text(wm("Game Porting Toolkit 4 (beta)")).font(.headline)
+                Text(wm("Apple only publishes GPTK 4 behind a free Apple ID sign-in, so it cannot be downloaded for you. Download the DMG from Apple and NotProton patches its D3DMetal into \(model.latestBase?.name ?? "the latest Gcenx runtime")."))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let dmg = model.foundDMG {
-                    Label("Found \(dmg.lastPathComponent)", systemImage: "externaldrive.fill.badge.checkmark")
+                    Label(wm("Found \(dmg.lastPathComponent)"), systemImage: "externaldrive.fill.badge.checkmark")
                         .foregroundStyle(.green)
                 }
                 if let job = model.job, job.id == WineManagerModel.gptkOverlayJob {
                     progress(job)
                 } else {
                     HStack {
-                        Button("Get from Apple…") { model.openAppleDownloads() }
+                        Button(wm("Get from Apple…")) { model.openAppleDownloads() }
                         if let dmg = model.foundDMG {
-                            Button("Patch in \(dmg.deletingPathExtension().lastPathComponent)") { model.importGPTK(dmg: dmg) }
+                            Button(wm("Patch in \(dmg.deletingPathExtension().lastPathComponent)")) { model.importGPTK(dmg: dmg) }
                                 .buttonStyle(.borderedProminent)
                         }
-                        Button("Choose DMG…") { model.chooseDMG() }
+                        Button(wm("Choose DMG…")) { model.chooseDMG() }
                     }
                     .disabled(model.job != nil || model.latestBase == nil)
                 }
@@ -100,10 +100,10 @@ struct WineManagerView: View {
     private var table: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("WINE VERSION").frame(maxWidth: .infinity, alignment: .leading)
-                Text("RELEASE DATE").frame(width: 130, alignment: .leading)
-                Text("SIZE").frame(width: 100, alignment: .leading)
-                Text("ACTION").frame(width: 150, alignment: .trailing)
+                Text(wm("WINE VERSION")).frame(maxWidth: .infinity, alignment: .leading)
+                Text(wm("RELEASE DATE")).frame(width: 130, alignment: .leading)
+                Text(wm("SIZE")).frame(width: 100, alignment: .leading)
+                Text(wm("ACTION")).frame(width: 150, alignment: .trailing)
             }
             .font(.caption.bold())
             .foregroundStyle(.secondary)
@@ -119,7 +119,7 @@ struct WineManagerView: View {
             if model.loading.contains(model.source) && model.visibleReleases.isEmpty {
                 ProgressView().padding(30)
             } else if model.visibleReleases.isEmpty {
-                Text("No versions").foregroundStyle(.secondary).padding(30)
+                Text(wm("No versions")).foregroundStyle(.secondary).padding(30)
             }
             ForEach(model.visibleReleases) { release in
                 row(name: release.name + (release.prerelease ? " (beta)" : ""), link: release.page,
@@ -152,15 +152,15 @@ struct WineManagerView: View {
                     progress(job)
                 } else if let manifest {
                     Button { model.reveal(manifest.id) } label: { Image(systemName: "folder.fill") }
-                        .help("Show in Finder")
+                        .help(wm("Show in Finder"))
                     Button { model.remove(manifest.id) } label: { Image(systemName: "trash.fill") }
-                        .help("Remove")
+                        .help(wm("Remove"))
                         .disabled(model.job != nil)
                 } else if let release {
                     Button { model.install(release) } label: {
                         Image(systemName: "arrow.down.circle.fill").font(.title2)
                     }
-                    .help("Download and set up")
+                    .help(wm("Download and set up"))
                     .disabled(model.job != nil)
                 }
             }
@@ -180,7 +180,7 @@ struct WineManagerView: View {
             Text(job.label).font(.caption).lineLimit(1).truncationMode(.middle)
             Button { model.cancel() } label: { Image(systemName: "xmark.circle.fill") }
                 .buttonStyle(.borderless)
-                .help("Cancel")
+                .help(wm("Cancel"))
         }
     }
 
@@ -191,7 +191,7 @@ struct WineManagerView: View {
                 Image(systemName: model.failure != nil ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                     .foregroundStyle(model.failure != nil ? .red : .green)
                 Text(text).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-                Button("Dismiss") { model.dismissMessages() }
+                Button(wm("Dismiss")) { model.dismissMessages() }
             }
             .padding(12)
             .background(.bar)

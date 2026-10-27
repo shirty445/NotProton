@@ -10,7 +10,7 @@ import Foundation
 
 enum SteamclientForwarder {
 
-    static let step = String(localized: "Build steamclient forwarders")
+    static let step = wm("Build steamclient forwarders")
 
     struct Image {
         let machine: UInt16
@@ -135,7 +135,7 @@ enum SteamclientForwarder {
         for (arch, name) in [("x86_64-windows", "steamclient64.dll"), ("i386-windows", "steamclient.dll")] {
             let source = bridge.appending(path: "\(arch)/lsteamclient.dll")
             guard let data = try? Data(contentsOf: source) else {
-                throw StepFailure(step: step, detail: String(localized: "\(arch)/lsteamclient.dll is not in the bridge. Install NotProton from Status first."))
+                throw StepFailure(step: step, detail: wm("\(arch)/lsteamclient.dll is not in the bridge. Install NotProton from Status first."))
             }
             let image = try exports(of: data)
             guard !image.exports.isEmpty else { throw bad("\(arch)/lsteamclient.dll exports nothing") }
