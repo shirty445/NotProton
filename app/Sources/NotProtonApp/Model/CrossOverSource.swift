@@ -148,7 +148,9 @@ enum CrossOverSource {
     }
 
     static func unixLoader(inRoot root: URL) -> URL {
-        root.appending(path: "lib/wine/x86_64-unix/wine")
+        let loader = root.appending(path: "lib/wine/x86_64-unix/wine")
+        // NotProtonGPTK: Wine 8 era runtimes (GPTK, Wine-Crossover 23) only ship bin/wine64.
+        return ManagedRunners.fallbackLoader(for: loader, inRoot: root)
     }
 
     static func verifyPatchInputs(root: URL, build: RunnerBuild) throws {

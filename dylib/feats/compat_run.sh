@@ -170,6 +170,12 @@ if [ "$np_flavor" = rosetta ] || [ ! -x "$WINELOADER" ] || [ ! -x "$WINESERVER" 
   WINESERVER="$CX_ROOT/bin/wineserver"
   [ -x "$WINESERVER" ] || WINESERVER="$CX_ROOT/bin/wineserver-x86"
 fi
+# NotProtonGPTK: Wine 8 era runtimes from the Wine Manager only ship bin/wine64.
+if [ ! -x "$WINELOADER" ]; then
+  for np_loader in "$CX_ROOT/bin/wine64" "$CX_ROOT/bin/wine"; do
+    if [ -x "$np_loader" ]; then WINELOADER=$np_loader; break; fi
+  done
+fi
 export WINELOADER WINESERVER
 
 np_from_defaults() {
@@ -1464,6 +1470,8 @@ fi
 bridge_src="$np_support/bridge"
 prefix_steam="$WINEPREFIX/drive_c/Program Files (x86)/Steam"
 verify_runner() {
+  # NotProtonGPTK: Wine Manager runners carry forwarders instead of a patched ntdll.
+  [ ! -d "${CX_ROOT%/CrossOver}/forwarders" ] || return 0
   if [ ! -d "$bridge_src/wine/$np_build" ]; then
     echo "=== no patched ntdll for build $np_build in the bridge, set it up in NotProton ===" >> "$log" 2>&1 || true
     return
@@ -1623,6 +1631,18 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
       *) rm -f "$f" && echo "=== pruned stale $(basename "$f") ===" >> "$log" 2>&1 ;;
     esac
   done
+  # NotProtonGPTK: a Wine Manager runner has no ntdll patch, so Valve's steamclient is
+  # swapped for forwarders that send every export to lsteamclient.
+  np_forwarders="${CX_ROOT%/CrossOver}/forwarders"
+  if [ -d "$np_forwarders" ]; then
+    for f in steamclient64.dll steamclient.dll; do
+      [ -f "$np_forwarders/$f" ] || continue
+      cmp -s "$np_forwarders/$f" "$prefix_steam/$f" && continue
+      if cp -fp "$np_forwarders/$f" "$prefix_steam/$f" 2>> "$log"; then
+        echo "=== forwarded $f to lsteamclient ===" >> "$log" 2>&1 || true
+      fi
+    done
+  fi
   verify_runner
   if ! install_lsteamclient_trigger; then
     show_alert "Steam files could not be copied" "NotProton could not copy a file into this game's prefix. Open this prefix's notproton-run.log for details."

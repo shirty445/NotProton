@@ -6,6 +6,7 @@ struct NotProtonApp: App {
 
     @State private var status = SystemStatus()
     @State private var prefixes = PrefixesModel()
+    @State private var wine = WineManagerModel()
     @State private var pane: Pane = .status
     private let updater = AppUpdater()
 
@@ -18,6 +19,7 @@ struct NotProtonApp: App {
             RootView(pane: $pane)
                 .environment(status)
                 .environment(prefixes)
+                .environment(wine)
                 .frame(minWidth: 720, minHeight: 460)
                 // Status never shows the prefix banner, so a result that lands there is kept
                 .onChange(of: pane) { old, _ in if old != .status { prefixes.forgetOutcome() } }
@@ -44,6 +46,8 @@ struct NotProtonApp: App {
                 .keyboardShortcut("2", modifiers: .command)
             Button("Prefix Backups") { pane = .backups }
                 .keyboardShortcut("3", modifiers: .command)
+            Button("Wine Manager") { pane = .wine }
+                .keyboardShortcut("4", modifiers: .command)
 
             Divider()
 
@@ -52,6 +56,7 @@ struct NotProtonApp: App {
                     switch pane {
                     case .status: await status.refresh()
                     case .prefixes, .backups: await prefixes.load()
+                    case .wine: await wine.refresh()
                     }
                 }
             }

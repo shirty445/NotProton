@@ -40,5 +40,7 @@
 	<string>https://github.com/NotProtonNot/NotProton/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>rDOXzJ+vt12aWeu9hATgvz6q46MlRcgR4gbTfj5YuWQ=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
 </dict>
 </plist>

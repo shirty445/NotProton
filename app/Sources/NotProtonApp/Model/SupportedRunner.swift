@@ -132,7 +132,10 @@ enum SupportedRunners {
             .map(\.element)
     }
 
-    static let all: [RunnerBuild] = [
+    // Pinned CrossOver builds plus the runners the Wine Manager downloaded (NotProtonGPTK).
+    static var all: [RunnerBuild] { pinned + ManagedRunners.builds() }
+
+    static let pinned: [RunnerBuild] = [
         RunnerBuild(
             bundleVersion: "26.3.0.39832",
             releaseVersion: "26.3",
