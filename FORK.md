@@ -77,6 +77,6 @@ to build the app too.
 Locally, the same as upstream: Xcode 27, `brew install mingw-w64 bison flex`, then
 `make all overlay-shim iconmaker appinfo bridge fonts app-payload app`.
 
-On GitHub, the **app** workflow builds `NotProton.zip` as an artifact. Upstream runs it on a
-custom `xcode-27` runner. In a fork, set the repository variables `NOTPROTON_RUNNER` (for example
-`macos-26`) and, if that image's Xcode lives elsewhere, `NOTPROTON_XCODE`.
+On GitHub, the **app** workflow builds `NotProton.zip` as an artifact on GitHub's hosted
+`xcode-27` preview runner, so it works in a fork as is. The repository variables
+`NOTPROTON_RUNNER` and `NOTPROTON_XCODE` can point it at another runner if that label goes away.
