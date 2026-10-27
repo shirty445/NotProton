@@ -3,9 +3,10 @@
 import Foundation
 
 // The fork's text is looked up in its own table, so upstream's string catalog never has to
-// carry it and syncing never conflicts there. Strings missing from a table show in English.
-func wm(_ key: String.LocalizationValue) -> String {
-    String(localized: key, table: "WineManager")
+// carry it and syncing never conflicts there. A plain String, not a LocalizationValue, so
+// the string extractor leaves it out of Localizable.xcstrings. Missing keys show in English.
+func wm(_ key: String) -> String {
+    Bundle.module.localizedString(forKey: key, value: key, table: "WineManager")
 }
 
 enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
