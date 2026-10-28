@@ -96,7 +96,7 @@ struct WineCatalogTests {
     @Test("Only Wine 11 sources are offered, the Wine 7 and 8 ones are kept for removal")
     func offered() {
         #expect(WineSource.offered == [.notproton, .wineStaging])
-        #expect(WineSource.offered.allSatisfy(\.runsSteamGames))
+        #expect(WineSource.offered.allSatisfy { $0.runsSteamGames })
         #expect(!WineSource.gptk.runsSteamGames && !WineSource.wineCrossover.runsSteamGames)
     }
 
