@@ -260,6 +260,14 @@ stage_wine() {
     grep -q '#define HAVE_FFMPEG 1' include/config.h || die "configure left out FFmpeg"
     grep -E '#define SONAME_LIB(FREETYPE|GNUTLS|SDL2|VULKAN) ' include/config.h
 
+    # Build tools such as sfnt2fon run from tools/<name>/, where the runner's rpath
+    # (@loader_path/../..) is this build folder, so the dylibs they load are linked in here.
+    # DYLD_LIBRARY_PATH would not do: /usr/bin/make drops it for its children.
+    local lib
+    for lib in "$DEPS"/lib/*.dylib; do
+        ln -sf "$lib" "$BUILD/${lib##*/}"
+    done
+
     log "building Wine"
     make -j"$JOBS"
     rm -rf "$INSTALL"
