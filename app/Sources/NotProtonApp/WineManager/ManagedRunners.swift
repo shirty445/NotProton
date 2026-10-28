@@ -23,6 +23,7 @@ enum ManagedRunners {
 
     static let manifestName = "notproton-managed.json"
     static let forwardersFolder = "forwarders"
+    static let redirectMarker = "lib/wine/notproton-steamclient-redirect"
     static let step = wm("Install Wine version")
 
     // MARK: Registry
@@ -195,7 +196,11 @@ enum ManagedRunners {
 
         report(Progress(label: wm("Preparing \(display)"), fraction: nil))
         try signLoaders(in: root)
-        try SteamclientForwarder.install(into: staging.appending(path: forwardersFolder), bridge: bridge)
+        // NotProton Wine redirects Valve's steamclient in its own ntdll (wine/patches), which
+        // DRM checking the DLL on disk accepts; forwarders are for Wine that cannot.
+        if !fm.fileExists(atPath: root.appending(path: redirectMarker).path(percentEncoded: false)) {
+            try SteamclientForwarder.install(into: staging.appending(path: forwardersFolder), bridge: bridge)
+        }
 
         let loader = CrossOverSource.unixLoader(inRoot: root)
         guard let hash = Digest.sha256IfPresent(loader) else {

@@ -24,7 +24,7 @@ repo="$(cd "$here/.." && pwd)"
 CX_VERSION=26.3.0
 CX_SHA256=ac99c8ca4b3848f3e81784135f023df266b61c2345726ea55a50b3e030dd6872
 # Bumped when the runner changes without a new CrossOver release.
-REVISION="${NP_WINE_REVISION:-1}"
+REVISION="${NP_WINE_REVISION:-2}"
 NAME="notproton-wine-cx$CX_VERSION-$REVISION"
 
 WORK="${NP_WINE_WORK:-$repo/scratch/cxwine}"
@@ -98,6 +98,15 @@ stage_fetch() {
             sources/wine sources/freetype sources/gnutls
     fi
     grep -q 'Wine version 11\.' "$SRC/wine/VERSION" || die "expected a Wine 11 tree, got: $(cat "$SRC/wine/VERSION")"
+
+    local p
+    for p in "$here"/patches/*.patch; do
+        [ -f "$p" ] || continue
+        [ -f "$SRC/.applied-${p##*/}" ] && continue
+        log "applying ${p##*/}"
+        patch -d "$SRC/wine" -p1 --forward < "$p"
+        touch "$SRC/.applied-${p##*/}"
+    done
 }
 
 # Every dylib gets an @rpath id and @rpath references to its siblings, so the runner can carry
@@ -297,6 +306,10 @@ stage_assemble() {
     [ -z "$leaks" ] || die "absolute build paths left: $leaks"
 
     find "$DIST/lib" -maxdepth 1 -name '*.dylib' -type f -exec codesign -f -s - {} \; 2>/dev/null || true
+
+    # Tells NotProton this Wine's ntdll redirects Valve's steamclient to lsteamclient itself
+    # (patches/0001), so Valve's own DLLs stay in the prefix instead of forwarders.
+    touch "$DIST/lib/wine/notproton-steamclient-redirect"
 
     cat > "$DIST/notproton-wine.json" <<EOF
 {

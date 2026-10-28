@@ -8,7 +8,7 @@ on:
       revision:
         description: Runner revision, bumped when the runner changes without a new CrossOver
         required: true
-        default: "1"
+        default: "2"
         type: string
       publish:
         description: Publish a release (otherwise only the workflow artifact)

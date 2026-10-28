@@ -1,0 +1,86 @@
+--- a/dlls/ntdll/loader.c
++++ b/dlls/ntdll/loader.c
+@@ -2272,7 +2272,74 @@
+ #ifdef __x86_64__
+ static void apply_fuzzy_binary_patches( WINE_MODREF* wm );
+ #endif
++
++/* NotProtonGPTK: Steam's own steamclient(64).dll is mapped as usual, so DRM that checks the
++ * file on disk or in memory finds Valve's signed DLL, but every export it shares with
++ * lsteamclient jumps there and its entry point is never called. This is what NotProton's
++ * ntdll detour does to CrossOver builds at fixed offsets. */
++static void redirect_steamclient( WINE_MODREF *wm, LPCWSTR load_path )
++{
++#ifdef _WIN64
++    UNICODE_STRING steamclient = RTL_CONSTANT_STRING( L"steamclient64.dll" );
++#else
++    UNICODE_STRING steamclient = RTL_CONSTANT_STRING( L"steamclient.dll" );
++#endif
++    UNICODE_STRING lsteamclient = RTL_CONSTANT_STRING( L"lsteamclient.dll" );
++    BYTE *module = wm->ldr.DllBase;
++    const IMAGE_EXPORT_DIRECTORY *exports;
++    const DWORD *names, *functions;
++    const WORD *ordinals;
++    ULONG exp_size, old_prot, i, redirected = 0;
++    HMODULE lsteam;
++    void *base = module;
++    SIZE_T size = wm->ldr.SizeOfImage;
+ 
++    if (!RtlEqualUnicodeString( &wm->ldr.BaseDllName, &steamclient, TRUE )) return;
++    if (!(exports = RtlImageDirectoryEntryToData( module, TRUE, IMAGE_DIRECTORY_ENTRY_EXPORT, &exp_size )))
++        return;
++    if (LdrGetDllHandle( load_path, 0, &lsteamclient, &lsteam ) &&
++        LdrLoadDll( load_path, 0, &lsteamclient, &lsteam ))
++    {
++        ERR( "%s: lsteamclient.dll did not load, leaving Valve's DLL alone\n",
++             debugstr_us(&wm->ldr.BaseDllName) );
++        return;
++    }
++    if (NtProtectVirtualMemory( NtCurrentProcess(), &base, &size, PAGE_EXECUTE_READWRITE, &old_prot ))
++        return;
++
++    names = (const DWORD *)(module + exports->AddressOfNames);
++    functions = (const DWORD *)(module + exports->AddressOfFunctions);
++    ordinals = (const WORD *)(module + exports->AddressOfNameOrdinals);
++    for (i = 0; i < exports->NumberOfNames; i++)
++    {
++        ANSI_STRING name;
++        void *target;
++        BYTE *code;
++        DWORD rva = functions[ordinals[i]];
++
++        /* a forwarder string, not code */
++        if (rva >= (const BYTE *)exports - module && rva < (const BYTE *)exports - module + exp_size)
++            continue;
++        RtlInitAnsiString( &name, (const char *)module + names[i] );
++        if (LdrGetProcedureAddress( lsteam, &name, 0, &target )) continue;
++        code = module + rva;
++#ifdef _WIN64
++        code[0] = 0x48; code[1] = 0xb8;                 /* movabs rax, target */
++        memcpy( code + 2, &target, sizeof(target) );
++        code[10] = 0xff; code[11] = 0xe0;               /* jmp rax */
++#else
++        code[0] = 0xe9;                                 /* jmp rel32 */
++        *(DWORD *)(code + 1) = (DWORD)((BYTE *)target - (code + 5));
++#endif
++        redirected++;
++    }
++    NtFlushInstructionCache( NtCurrentProcess(), module, wm->ldr.SizeOfImage );
++
++    /* lsteamclient's DllMain already ran when it loaded; Valve's must not */
++    wm->ldr.EntryPoint = NULL;
++    TRACE( "%s: %lu exports redirected to lsteamclient\n", debugstr_us(&wm->ldr.BaseDllName), redirected );
++}
++
+ /*************************************************************************
+  *		build_module
+  *
+@@ -2376,6 +2443,8 @@
+         apply_fuzzy_binary_patches( wm );
+ #endif
+ 
++    if (!is_builtin) redirect_steamclient( wm, load_path );
++
+     wm->ldr.LoadCount = 1;
+     *pwm = wm;
+     *module = NULL;

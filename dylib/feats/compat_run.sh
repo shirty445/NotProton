@@ -1470,8 +1470,10 @@ fi
 bridge_src="$np_support/bridge"
 prefix_steam="$WINEPREFIX/drive_c/Program Files (x86)/Steam"
 verify_runner() {
-  # NotProtonGPTK: Wine Manager runners carry forwarders instead of a patched ntdll.
+  # NotProtonGPTK: Wine Manager runners carry forwarders or redirect in their own ntdll
+  # instead of a patched one.
   [ ! -d "${CX_ROOT%/CrossOver}/forwarders" ] || return 0
+  [ ! -f "$CX_ROOT/lib/wine/notproton-steamclient-redirect" ] || return 0
   if [ ! -d "$bridge_src/wine/$np_build" ]; then
     echo "=== no patched ntdll for build $np_build in the bridge, set it up in NotProton ===" >> "$log" 2>&1 || true
     return
@@ -1632,9 +1634,10 @@ if [ -d "$bridge_src" ] && [ -n "$WINEPREFIX" ]; then
     esac
   done
   # NotProtonGPTK: a Wine Manager runner has no ntdll patch, so Valve's steamclient is
-  # swapped for forwarders that send every export to lsteamclient.
+  # swapped for forwarders that send every export to lsteamclient. NotProton Wine's ntdll
+  # redirects Valve's DLL itself, so the bridge's copy of it stays.
   np_forwarders="${CX_ROOT%/CrossOver}/forwarders"
-  if [ -d "$np_forwarders" ]; then
+  if [ -d "$np_forwarders" ] && [ ! -f "$CX_ROOT/lib/wine/notproton-steamclient-redirect" ]; then
     for f in steamclient64.dll steamclient.dll; do
       [ -f "$np_forwarders/$f" ] || continue
       cmp -s "$np_forwarders/$f" "$prefix_steam/$f" && continue
