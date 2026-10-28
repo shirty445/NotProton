@@ -27,7 +27,7 @@
 +    SIZE_T size = wm->ldr.SizeOfImage;
  
 +    if (!RtlEqualUnicodeString( &wm->ldr.BaseDllName, &steamclient, TRUE )) return;
-+    if (!(exports = RtlImageDirectoryEntryToData( module, TRUE, IMAGE_DIRECTORY_ENTRY_EXPORT, &exp_size )))
++    if (!(exports = RtlImageDirectoryEntryToData( (HMODULE)module, TRUE, IMAGE_DIRECTORY_ENTRY_EXPORT, &exp_size )))
 +        return;
 +    if (LdrGetDllHandle( load_path, 0, &lsteamclient, &lsteam ) &&
 +        LdrLoadDll( load_path, 0, &lsteamclient, &lsteam ))
