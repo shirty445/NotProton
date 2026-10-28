@@ -289,10 +289,11 @@ stage_assemble() {
     tar -xJf "$DL/wine-mono-10.4.1-x86.tar.xz" -C "$DIST/share/wine/mono"
     cp "$DL/wine-gecko-2.47.4-x86.msi" "$DL/wine-gecko-2.47.4-x86_64.msi" "$DIST/share/wine/gecko/"
 
-    # Nothing may point into this machine's build folders.
+    # Nothing may point into this machine's build folders. otool heads each file with its own
+    # path, which is under $WORK too, so only the indented dependency lines are checked.
     local leaks
     leaks="$(otool -L "$DIST"/lib/*.dylib "$DIST"/lib/wine/x86_64-unix/*.so "$DIST"/lib/wine/x86_64-unix/wine \
-        | grep -F "$WORK" || true)"
+        | grep '^[[:space:]]' | grep -F "$WORK" || true)"
     [ -z "$leaks" ] || die "absolute build paths left: $leaks"
 
     find "$DIST/lib" -maxdepth 1 -name '*.dylib' -type f -exec codesign -f -s - {} \; 2>/dev/null || true
