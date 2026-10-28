@@ -912,6 +912,10 @@ EOF
 video_lines() {
   [ "$verb" = waitforexitandrun ] || return 0
   printf '%s\r\n' '[HKEY_CURRENT_USER\Software\Wine\Mac Driver]' "$retina_line" ''
+  # NotProtonGPTK: Wine 10 and later draw a DPI unaware game at half size and stretch it, so
+  # High Resolution marks every program high DPI aware through Wine's default Layers value.
+  printf '%s\r\n' '[HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers]' \
+    "$dpi_aware_line" ''
   [ -n "$dpi_value" ] || return 0
   printf '%s\r\n' '[HKEY_CURRENT_USER\Control Panel\Desktop]' "$dpi_value" ''
 }
@@ -919,8 +923,10 @@ video_lines() {
 import_prefix_settings() {
   if [ "$NOTPROTON_RETINA" = "1" ]; then
     retina_line='"RetinaMode"="y"'
+    dpi_aware_line='@="~ HIGHDPIAWARE"'
   else
     retina_line='"RetinaMode"=-'
+    dpi_aware_line='@=-'
   fi
   dpi_value=""
   controllers_planned=0

@@ -40,7 +40,9 @@ settings() {
 		'[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug]' '"Auto"="0"' '' \
 		'[HKEY_LOCAL_MACHINE\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\AeDebug]' '"Auto"="0"' '' \
 		'[HKEY_CURRENT_USER\Software\Wine\WineDbg]' '"ShowCrashDialog"=dword:00000000' ''
-	[ -z "$1" ] || printf '%s\r\n' '[HKEY_CURRENT_USER\Software\Wine\Mac Driver]' "$1" ''
+	[ -z "$1" ] || printf '%s\r\n' '[HKEY_CURRENT_USER\Software\Wine\Mac Driver]' "$1" '' \
+		'[HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers]' \
+		"$(if [ "$1" = '"RetinaMode"=-' ]; then echo '@=-'; else echo '@="~ HIGHDPIAWARE"'; fi)" ''
 	[ -z "$2" ] || printf '%s\r\n' '[HKEY_CURRENT_USER\Control Panel\Desktop]' "\"LogPixels\"=dword:$2" ''
 	printf '%s\r\n' '[HKEY_LOCAL_MACHINE\Software\Classes\steam]' '"URL Protocol"=""' '' \
 		'[HKEY_LOCAL_MACHINE\Software\Classes\steam\shell\open\command]' \
