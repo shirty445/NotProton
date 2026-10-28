@@ -87,7 +87,7 @@ struct WineCatalogTests {
         """
         let releases = try WineCatalog.parse(Data(feed.utf8), source: .notproton)
         #expect(releases.map(\.version) == ["cx26.3.0-1"])
-        #expect(releases[0].download.lastPathComponent == "notproton-wine-cx26.3.0-1.tar.xz")
+        #expect(releases[0].download.absoluteString == "https://example.com/w.tar.xz")
         #expect(releases[0].runnerID == "npwine-cx26.3.0-1")
         #expect(releases[0].display == "NotProton Wine cx26.3.0-1")
         #expect(ManagedRunners.overlayID(base: releases[0], d3dMetal: "4.0b3") == "npwine-cx26.3.0-1-d3dmetal-4.0b3")
