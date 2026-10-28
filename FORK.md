@@ -1,13 +1,28 @@
 # NotProtonGPTK
 
 A fork of [NotProton](https://github.com/NotProtonNot/NotProton) that downloads its own Wine instead of
-needing CrossOver. It adds a **Wine Manager** pane, modeled on Heroic's, with three tabs:
+needing CrossOver. It adds a **Wine Manager** pane, modeled on Heroic's, with two tabs:
 
 | Tab | Feed | Notes |
 |---|---|---|
-| Game-Porting-Toolkit | [Gcenx/game-porting-toolkit](https://github.com/Gcenx/game-porting-toolkit/releases) | Apple's D3DMetal for DX11/DX12 |
-| Wine-Crossover | [Heroic-Games-Launcher/wine-crossover](https://github.com/Heroic-Games-Launcher/wine-crossover/releases) | CodeWeavers' open source Wine |
+| NotProton Wine | this fork's `wine-*` releases | CrossOver 26.3's open source Wine 11, built by `wine/build.sh`; GPTK 4's D3DMetal is patched onto it |
 | Wine-Staging-macOS | [Gcenx/macOS_Wine_builds](https://github.com/Gcenx/macOS_Wine_builds/releases) | Newest upstream Wine, no D3DMetal |
+
+## Why NotProton Wine
+
+The bridge's `lsteamclient` is built against Wine 11 (`bridge/setup-wine-tree.sh`), and its
+Windows and macOS halves only work with a matching Wine. Gcenx's Game Porting Toolkit runtime is
+Wine 7.7 and Heroic's Wine-Crossover 23.7 is Wine 8: on them a game dies with
+`steamclient_init: Access violation`, and Steam's 32 bit install scripts crash under Wine 8's
+experimental WoW64. Those two feeds are no longer offered. Runners installed from them stay
+listed, marked, so they can be removed.
+
+`.github/workflows/wine.yml` (run by hand) builds CodeWeavers' published CrossOver 26.3 tree,
+which is Wine 11.0 with CrossOver's D3DMetal hooks in `winemac.drv` and `ntdll`, plus msync. It
+smoke tests a prefix with 64 and 32 bit programs and publishes
+`notproton-wine-cx<version>-<revision>.tar.xz` as a `wine-cx<version>-<revision>` release, which
+the Wine Manager lists. Nothing of Apple's is in it. Bump the `revision` input to publish a
+changed build.
 
 Each downloaded version becomes its own Steam compatibility tool (`notproton-<id>`). Pinned
 CrossOver builds still work as before and stay first in Steam's default order when installed.
@@ -18,15 +33,16 @@ Apple publishes GPTK 4 only on [developer.apple.com](https://developer.apple.com
 behind a free Apple ID sign-in, and it may not be redistributed. So it cannot be downloaded
 for you. Instead:
 
-1. In **Wine Manager > Game-Porting-Toolkit**, click **Get from Apple…** and download
+1. In **Wine Manager > NotProton Wine**, click **Get from Apple…** and download
    *Game Porting Toolkit 4.0 beta 3* (the `.dmg`).
 2. Back in NotProton, click **Patch in …** (the DMG in Downloads or on the Desktop is found
    automatically) or **Choose DMG…**.
 
-NotProton downloads the newest stable Gcenx GPTK runtime, mounts Apple's DMG and its nested
+NotProton downloads the newest NotProton Wine, mounts Apple's DMG and its nested
 *Evaluation environment* image, and merges `redist/lib` into the runtime's `lib`, as Apple's
-Read Me describes. The result shows up as e.g. *Game Porting Toolkit 4.0b3 (D3DMetal)*. A
-newer beta is patched in the same way.
+Read Me describes. `lib64/apple_gptk/external` is linked to it, as in CrossOver, so the run
+script hands `libd3dshared` to Wine for Rosetta. The result shows up as e.g. *NotProton Wine
+cx26.3.0-1 + D3DMetal 4.0b3*. A newer beta is patched in the same way.
 
 ## Mac versions of games
 
@@ -45,7 +61,7 @@ back to the Mac version. Windows-only games use the first NotProton tool automat
   `steamclient64.dll` on disk sees the forwarder, not Valve's file.
 - **Rosetta only.** None of these builds has a FEX flavor.
 - **Wine 8 era runtimes** (GPTK 2/3, Wine-Crossover 23.7) have no `lib/wine/x86_64-unix/wine`,
-  so the run script falls back to `bin/wine64`.
+  so the run script falls back to `bin/wine64`. They still cannot run Steam games (see above).
 - **No CrossOver license check** for downloaded runners.
 - **English only.** The Wine Manager's text uses its own `WineManager` string table, so
   upstream's `Localizable.xcstrings` and its translation check never see it.
@@ -54,7 +70,7 @@ back to the Mac version. Windows-only games use the first NotProton tool automat
 
 ## Staying in sync with upstream
 
-New code lives in `app/Sources/NotProtonApp/WineManager/` and
+New code lives in `wine/`, `.github/workflows/wine.yml`, `app/Sources/NotProtonApp/WineManager/` and
 `app/Tests/NotProtonAppTests/WineManagerTests.swift`, which upstream never touches. The
 upstream files this fork changes are kept to small, commented hooks (search for
 `NotProtonGPTK`):

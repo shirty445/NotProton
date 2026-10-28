@@ -10,14 +10,33 @@ func wm(_ key: String) -> String {
 }
 
 enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
+    case notproton
     case gptk
     case wineCrossover
     case wineStaging
 
     var id: String { rawValue }
 
+    // The fork's own CI publishes NotProton Wine here (.github/workflows/wine.yml).
+    static let forkRepository = "shirty445/NotProton"
+
+    // The tabs the Wine Manager offers. Game-Porting-Toolkit and Wine-Crossover stay
+    // decodable so runners installed from them can still be listed and removed.
+    static let offered: [WineSource] = [.notproton, .wineStaging]
+
+    // The bridge's lsteamclient is built against Wine 11 and its two halves only work with a
+    // matching Wine. Gcenx's GPTK runtime is Wine 7.7 and Wine-Crossover 23.7 is Wine 8, where
+    // steamclient_init crashes, so Steam games cannot run on them.
+    var runsSteamGames: Bool {
+        switch self {
+        case .notproton, .wineStaging: true
+        case .gptk, .wineCrossover: false
+        }
+    }
+
     var title: String {
         switch self {
+        case .notproton: "NotProton Wine"
         case .gptk: "Game-Porting-Toolkit"
         case .wineCrossover: "Wine-Crossover"
         case .wineStaging: "Wine-Staging-macOS"
@@ -26,6 +45,8 @@ enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
 
     var blurb: String {
         switch self {
+        case .notproton:
+            wm("CodeWeavers' open source CrossOver 26.3 Wine (Wine 11), built by this fork's CI. It matches NotProton's Steam bridge and carries the hooks D3DMetal needs, so Apple's Game Porting Toolkit is patched onto it. Recommended.")
         case .gptk:
             wm("Game Porting Toolkit is developed by Apple and is recommended for Apple Silicon Macs. It works best for newer games that use DX12. Builds are packaged by Gcenx; GPTK 4 betas can be patched in from Apple's DMG.")
         case .wineCrossover:
@@ -38,6 +59,7 @@ enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
     // Kept short: the build id and tool name both have to fit in 63 characters.
     var idPrefix: String {
         switch self {
+        case .notproton: "npwine"
         case .gptk: "gptk"
         case .wineCrossover: "winecx"
         case .wineStaging: "wine-staging"
@@ -46,6 +68,7 @@ enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
 
     var repo: String {
         switch self {
+        case .notproton: WineSource.forkRepository
         case .gptk: "Gcenx/game-porting-toolkit"
         case .wineCrossover: "Heroic-Games-Launcher/wine-crossover"
         case .wineStaging: "Gcenx/macOS_Wine_builds"
@@ -55,6 +78,7 @@ enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
     func accepts(asset name: String) -> Bool {
         guard name.hasSuffix(".tar.xz") else { return false }
         switch self {
+        case .notproton: return name.hasPrefix("notproton-wine-")
         case .gptk, .wineCrossover: return true
         case .wineStaging: return name.hasPrefix("wine-staging-")
         }
@@ -62,6 +86,7 @@ enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
 
     func version(fromTag tag: String) -> String {
         switch self {
+        case .notproton: tag.hasPrefix("wine-") ? String(tag.dropFirst("wine-".count)) : tag
         case .gptk: tag.replacingOccurrences(of: "Game-Porting-Toolkit-", with: "")
         case .wineCrossover, .wineStaging: tag
         }
@@ -69,6 +94,7 @@ enum WineSource: String, CaseIterable, Identifiable, Sendable, Codable {
 
     func display(version: String) -> String {
         switch self {
+        case .notproton: "NotProton Wine \(version)"
         case .gptk: "Game Porting Toolkit \(version)"
         case .wineCrossover: "Wine-Crossover \(version)"
         case .wineStaging: "Wine-Staging \(version)"

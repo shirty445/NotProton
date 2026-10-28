@@ -13,7 +13,7 @@ final class WineManagerModel {
         var fraction: Double?
     }
 
-    var source: WineSource = .gptk
+    var source: WineSource = .notproton
     var search = ""
     private(set) var releases: [WineSource: [WineRelease]] = [:]
     private(set) var installed: [ManagedRunnerManifest] = []
@@ -39,7 +39,13 @@ final class WineManagerModel {
         return installed.filter { $0.source == source && !listed.contains($0.id) }
     }
 
-    var latestBase: WineRelease? { WineCatalog.latest(releases[.gptk] ?? []) }
+    // Runners from sources no longer offered, listed on the first tab so they can be removed.
+    var olderInstalled: [ManagedRunnerManifest] {
+        guard source == WineSource.offered.first else { return [] }
+        return installed.filter { !WineSource.offered.contains($0.source) }
+    }
+
+    var latestBase: WineRelease? { WineCatalog.latest(releases[.notproton] ?? []) }
 
     func manifest(for release: WineRelease) -> ManagedRunnerManifest? {
         installed.first { $0.id == release.runnerID }
@@ -48,7 +54,7 @@ final class WineManagerModel {
     func appear() async {
         reloadInstalled()
         if releases[source] == nil { await load(source) }
-        if source != .gptk, releases[.gptk] == nil { await load(.gptk) }
+        if source != .notproton, releases[.notproton] == nil { await load(.notproton) }
     }
 
     func select(_ new: WineSource) async {
@@ -86,7 +92,7 @@ final class WineManagerModel {
 
     func importGPTK(dmg: URL?) {
         guard let base = latestBase else {
-            failure = wm("The Game Porting Toolkit list has not loaded yet, so there is no runtime to patch.")
+            failure = wm("No NotProton Wine release is listed yet, so there is nothing to patch D3DMetal onto.")
             return
         }
         run(id: Self.gptkOverlayJob, first: wm("Preparing Game Porting Toolkit")) { report in

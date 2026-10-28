@@ -69,6 +69,10 @@ enum ManagedRunners {
 
     static func toolName(forRunner id: String) -> String { "notproton-\(id)" }
 
+    static func overlayID(base: WineRelease, d3dMetal version: String) -> String {
+        runnerID(source: base.source, version: "\(base.version)-d3dmetal-\(version)")
+    }
+
     // Wine 8 era runtimes have no lib/wine/x86_64-unix/wine, only bin/wine64.
     static func fallbackLoader(for loader: URL, inRoot root: URL) -> URL {
         let fm = FileManager.default
@@ -100,7 +104,7 @@ enum ManagedRunners {
     }
 
     // GPTK 4 betas are not redistributable, so the user brings Apple's DMG and its D3DMetal is
-    // laid over the newest Gcenx Game Porting Toolkit runtime, as Apple's Read Me describes.
+    // laid over NotProton Wine, as Apple's Read Me describes laying it over a Wine runtime.
     static func installGPTKOverlay(
         dmg: URL?, base: WineRelease, report: @escaping Report
     ) async throws -> ManagedRunnerManifest {
@@ -111,9 +115,9 @@ enum ManagedRunners {
             defer { mount.close() }
             let version = mount.d3dMetalVersion
             return try assemble(
-                id: runnerID(source: .gptk, version: version),
-                source: .gptk, version: version,
-                display: "Game Porting Toolkit \(version) (D3DMetal)",
+                id: overlayID(base: base, d3dMetal: version),
+                source: base.source, version: "\(base.version)+d3dmetal-\(version)",
+                display: "\(base.display) + D3DMetal \(version)",
                 origin: dmg?.lastPathComponent ?? mount.redist.path(percentEncoded: false),
                 base: base.name, archive: archive,
                 customize: { root in

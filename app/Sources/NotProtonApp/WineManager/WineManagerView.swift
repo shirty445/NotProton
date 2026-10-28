@@ -17,7 +17,7 @@ struct WineManagerView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 4)
-                    if model.source == .gptk { gptkOverlayCard }
+                    if model.source == .notproton { gptkOverlayCard }
                     table
                 }
                 .padding(20)
@@ -49,7 +49,7 @@ struct WineManagerView: View {
 
     private var tabs: some View {
         HStack(spacing: 4) {
-            ForEach(WineSource.allCases) { source in
+            ForEach(WineSource.offered) { source in
                 Button {
                     Task { await model.select(source) }
                 } label: {
@@ -71,7 +71,7 @@ struct WineManagerView: View {
         GroupBox {
             VStack(alignment: .leading, spacing: 10) {
                 Text(wm("Game Porting Toolkit 4 (beta)")).font(.headline)
-                Text(wm("Apple only publishes GPTK 4 behind a free Apple ID sign-in, so it cannot be downloaded for you. Download the DMG from Apple and NotProton patches its D3DMetal into \(model.latestBase?.name ?? "the latest Gcenx runtime")."))
+                Text(wm("Apple only publishes GPTK 4 behind a free Apple ID sign-in, so it cannot be downloaded for you. Download the DMG from Apple and NotProton patches its D3DMetal into \(model.latestBase?.display ?? "the latest NotProton Wine"). DirectX 11 and 12 games need this; plain NotProton Wine draws through OpenGL."))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let dmg = model.foundDMG {
@@ -113,6 +113,11 @@ struct WineManagerView: View {
             ForEach(model.unlistedInstalled) { manifest in
                 row(name: manifest.display, link: nil, date: manifest.installedAt,
                     size: nil, manifest: manifest, release: nil)
+                Divider()
+            }
+            ForEach(model.olderInstalled) { manifest in
+                row(name: manifest.display + (manifest.source.runsSteamGames ? "" : wm(" (Wine 7/8, Steam games crash)")),
+                    link: nil, date: manifest.installedAt, size: nil, manifest: manifest, release: nil)
                 Divider()
             }
 

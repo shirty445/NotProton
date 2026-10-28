@@ -1,0 +1,92 @@
+# NotProtonGPTK: builds NotProton Wine (CrossOver's open source Wine 11) and publishes it as a
+# release the Wine Manager lists. Started by hand: a build takes one to two hours.
+name: wine
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Runner revision, bumped when the runner changes without a new CrossOver
+        required: true
+        default: "1"
+        type: string
+      publish:
+        description: Publish a release (otherwise only the workflow artifact)
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wine
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: NotProton Wine
+    runs-on: ${{ vars.NOTPROTON_RUNNER || 'xcode-27' }}
+    timeout-minutes: 360
+    env:
+      NP_WINE_REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          brew install mingw-w64 bison flex nasm pkg-config cmake ninja ccache
+          softwareupdate --install-rosetta --agree-to-license || true
+          arch -x86_64 /usr/bin/true
+
+      - name: Restore downloads
+        uses: actions/cache@v4
+        with:
+          path: scratch/cxwine/downloads
+          key: wine-downloads-${{ hashFiles('wine/build.sh') }}
+          restore-keys: wine-downloads-
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: scratch/cxwine/ccache
+          key: wine-ccache-${{ github.run_id }}
+          restore-keys: wine-ccache-
+
+      - name: Fetch sources
+        run: wine/build.sh tools fetch
+
+      - name: Build the libraries Wine loads
+        run: wine/build.sh deps
+
+      - name: Build Wine
+        run: wine/build.sh wine
+
+      - name: Assemble and package
+        run: wine/build.sh assemble package
+
+      - name: Smoke test
+        run: wine/smoke.sh
+
+      - name: Upload the runner
+        uses: actions/upload-artifact@v4
+        with:
+          name: notproton-wine
+          path: scratch/cxwine/out/notproton-wine-*
+          compression-level: 0
+
+      - name: Publish the release
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          name=$(cat scratch/cxwine/out/name)
+          tag="wine-${name#notproton-wine-}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already exists; bump the revision to publish a new one" >&2
+            exit 1
+          fi
+          gh release create "$tag" --latest=false --target "$GITHUB_SHA" \
+            --title "NotProton Wine ${name#notproton-wine-}" \
+            --notes "CodeWeavers' open source CrossOver Wine, built by wine/build.sh for NotProton's Wine Manager. Wine 11, x86_64 for Rosetta, with i386 through WoW64. Nothing of Apple's is included: the Wine Manager patches D3DMetal in from Apple's Game Porting Toolkit DMG." \
+            "scratch/cxwine/out/$name.tar.xz" "scratch/cxwine/out/$name.tar.xz.sha256"

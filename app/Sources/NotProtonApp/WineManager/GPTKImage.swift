@@ -103,6 +103,19 @@ final class GPTKImage {
             throw StepFailure(step: GPTKImage.step, detail: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
         }
         RunnerInstaller.scrubDownloadMarkers(at: lib)
+        try linkForRosetta(root: root)
+    }
+
+    // CrossOver keeps libd3dshared in lib64/apple_gptk/external, and the run script only hands
+    // its path to Wine (CX_APPLEGPTK_LIBD3DSHARED_PATH) from there. CrossOver's ntdll uses it
+    // to register D3DMetal's code with Rosetta, so point that path at what was laid in.
+    private func linkForRosetta(root: URL) throws {
+        let fm = FileManager.default
+        let folder = root.appending(path: "lib64/apple_gptk")
+        let link = folder.appending(path: "external")
+        guard !fm.fileExists(atPath: link.path(percentEncoded: false)) else { return }
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        try fm.createSymbolicLink(atPath: link.path(percentEncoded: false), withDestinationPath: "../../lib/external")
     }
 
     private static func mountedRedist() -> URL? {

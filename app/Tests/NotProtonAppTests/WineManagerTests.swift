@@ -70,6 +70,36 @@ struct WineCatalogTests {
         #expect(!WineSource.wineStaging.accepts(asset: "wine-devel-11.18-osx64.tar.xz"))
     }
 
+    @Test("NotProton Wine takes only its runner archive out of the fork's release feed")
+    func notprotonFeed() throws {
+        let feed = """
+        [
+          {"tag_name": "v1.4", "html_url": "https://example.com/app", "published_at": "2026-10-29T00:00:00Z",
+           "prerelease": false, "draft": false,
+           "assets": [{"name": "NotProton.zip", "size": 5, "browser_download_url": "https://example.com/a.zip"}]},
+          {"tag_name": "wine-cx26.3.0-1", "html_url": "https://example.com/w", "published_at": "2026-10-28T00:00:00Z",
+           "prerelease": false, "draft": false,
+           "assets": [{"name": "notproton-wine-cx26.3.0-1.tar.xz.sha256", "size": 1,
+                       "browser_download_url": "https://example.com/w.sha256"},
+                      {"name": "notproton-wine-cx26.3.0-1.tar.xz", "size": 9,
+                       "browser_download_url": "https://example.com/w.tar.xz"}]}
+        ]
+        """
+        let releases = try WineCatalog.parse(Data(feed.utf8), source: .notproton)
+        #expect(releases.map(\.version) == ["cx26.3.0-1"])
+        #expect(releases[0].download.lastPathComponent == "notproton-wine-cx26.3.0-1.tar.xz")
+        #expect(releases[0].runnerID == "npwine-cx26.3.0-1")
+        #expect(releases[0].display == "NotProton Wine cx26.3.0-1")
+        #expect(ManagedRunners.overlayID(base: releases[0], d3dMetal: "4.0b3") == "npwine-cx26.3.0-1-d3dmetal-4.0b3")
+    }
+
+    @Test("Only Wine 11 sources are offered, the Wine 7 and 8 ones are kept for removal")
+    func offered() {
+        #expect(WineSource.offered == [.notproton, .wineStaging])
+        #expect(WineSource.offered.allSatisfy(\.runsSteamGames))
+        #expect(!WineSource.gptk.runsSteamGames && !WineSource.wineCrossover.runsSteamGames)
+    }
+
     @Test("Runner ids stay inside what the run script and dylib accept")
     func runnerIDs() {
         let id = ManagedRunners.runnerID(source: .gptk, version: "4.0 beta 3/b")
